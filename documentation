@@ -1,0 +1,14 @@
+Communication between server and client
+
+
+
+
+Server opens on ip x and port y
+Client connects to server on port y
+Server wait for clients to connect
+Server send a message to all clients
+Clients receive message and calculate answer
+All clients send answer to server
+Server sends each clients response back to each client except the sender
+Clients await new suggestion
+Server sends new suggestion
