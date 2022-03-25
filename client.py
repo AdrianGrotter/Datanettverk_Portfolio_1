@@ -24,11 +24,11 @@ def john(word):
                                     random.randint(0, len(preferred_actions)-1)] + "."]
 
     if word in preferred_actions:
-        return "John: " + preferred_actions_responselist[random.randint(0, len(preferred_actions_responselist)-1)]+"\n"
+        return "John: " + preferred_actions_responselist[random.randint(0, len(preferred_actions_responselist)-1)]
     elif word in bad_actions:
-        return "John: " + bad_actions_responselist[random.randint(0, len(bad_actions_responselist)-1)]+"\n"
+        return "John: " + bad_actions_responselist[random.randint(0, len(bad_actions_responselist)-1)]
     else:
-        return "John: "+neutral_responselist[random.randint(0, len(neutral_responselist)-1)]+"\n"
+        return "John: "+neutral_responselist[random.randint(0, len(neutral_responselist)-1)]
 
 # bot named alexandra
 def alexandra(action):
@@ -43,19 +43,19 @@ def alexandra(action):
 
     # returns a randomly selected string from the list above
     randomNumber = random.randint(0, len(actions)-1)
-    return "Alexandra: "+actions[randomNumber]+"\n"
+    return "Alexandra: "+actions[randomNumber]
 
 
 # bot named oscar
 def oscar(action):
-    return "Oscar: "+action+" sounds great!\n"
+    return "Oscar: "+action+" sounds great!"
 
 
 # bot named nathan. Makes a respons from command-line input
 def nathan(action):
 
     response = input("Provide a response: ")
-    return "Nathan: "+response+"\n"
+    return "Nathan: "+response
 
 
 def client(ip, port, bot):
@@ -70,8 +70,8 @@ def client(ip, port, bot):
             print(msg.decode())
         elif msg.decode() == "Welcome to my chatroom":
             print("Someone has appeared. Godrick?")
-        # elif wordlist[0].startswith('ping'):
-        #    print("pinged by server")
+        elif "ping" in msg.decode():
+            print("pinged by server")
         else:
             print(msg)
             response = eval(bot + "(msg.decode())")

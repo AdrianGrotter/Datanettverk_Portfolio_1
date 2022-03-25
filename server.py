@@ -2,111 +2,126 @@ import socket
 from _thread import *
 from time import sleep
 
-host = '192.168.56.1'
+host = '127.0.0.1'
 port = 2345
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-
-#TODO
-#Check if client is still connected before sending message
-#Find a time to disconnect clients (low priority)
-#method "check_connection" needs testing
+# TODO
+# Check if client is still connected before sending message
+# Find a time to disconnect clients (low priority)
+# method "check_connection" needs testing
 
 
 clients = []
-verblist = ["gaming", "run", "code", "coding", "party", "draw", "act", "drive", "driving", "chat", "chatting", "walk"]
+responses = []
 
+# words that change by more that just +ing are written two times
+verblist = ["gaming", "run", "running", "code", "coding", "party", "draw", "act", "drive",
+            "driving", "chat", "chatting", "walk", "fly", "dance", "dancing", "drink",
+            "climb", "cook", "ride", "riding", "write", "writing", "hunt", "swim", "swimming",
+            "sit", "sitting", "talk", "talking"]
 
 try:
     serverSocket.bind((host, port))
 except socket.error as e:
     print(str(e))
 
-
 print("Socket is listening...")
 serverSocket.listen(10)
 
 
-#method responsible for sending messages to a client
+# pings all clients and removes "dead" clients
+def connectionChecker():
+    print("Pinging clients")
+    for c in clients:
+        try:
+            c.send("ping".encode())
+        except:
+            print("A client has disconnected")
+            clients.remove(c)
+        else:
+            print("Pinging complete")
+            sleep(0.5)
+
+
+# method responsible for sending messages to a client
 def threaded_client_sender(clientSocket, message):
-    #is client alive?
-    #if check_connection(clientSocket):
-        for c in clients:
-
-            # if c != clientSocket:
-            #    try:
-            #        c.send("ping".encode())
-            #    except:
-            #        print("A client has disconnected.")
-            #        # client is removed from the clients list
-            #        clients.remove(clientSocket)
-            #        c.close()
-            #    else:
-            c.send(message.encode())
+    # is client alive?
+    for c in clients:  # sends message to all clients
+        c.send(message.encode())
 
 
-#a method responsible for receiving messages from a client
+# prints all responses collected in the responses list
+def printResponses():
+    for response in responses:  # prints every response
+        print(response)
+    responses.clear()  # clears list for a new round of dialogue
+    inputHandler()
+
+
+# a method responsible for receiving messages from a client
 def threaded_client_listener(clientSocket):
     while True:
         received = clientSocket.recv(1024)
-        msg = "Server: "+received.decode()
-        print(received.decode(), end='')
-        # threaded_client_sender(clientSocket, msg)
-        if(clientSocket == clients[0]):
-            sleep(3)
-            inputHandler()
+        if received.decode() == "Alive":
+            print("Client is still alive")
+        else:
+            clients.remove(clientSocket)
+            print("Received a response")
+            print("Response: "+received.decode())
+            responses.append(received.decode())
+            # threaded_client_sender(clientSocket, msg)
+            # print(str(len(responses)) + " | " + str(len(clients)))
+            if len(responses) == len(clients):
+                printResponses()
 
 
-#takes input and sends to every client
+def verbIdentifier(sentence):
+    verb = ""
+    for word in sentence.split():  # find the verb in the sentence
+        if word.lower() in verblist or word.removesuffix("ing").lower() in verblist:
+            print("The verb is " + word + ".")
+            verb = word
+            break
+
+    if verb == "":  # if no verb was found
+        print("Warning: No verb recognized")
+        verb = "DefaultVerb"
+    return verb
+
+
+# takes input and sends to every client
 def inputHandler():
     sleep(1)
     global sentence
     # only takes single verb as input for now
-    sentence = str(input("Say something: "))
-    print("Server: "+sentence)
-    sentence = sentence.removesuffix("?")
-    verb = ""
-    print(sentence.split())
-    for word in sentence.split():
-        if word.lower() in verblist or word.removesuffix("ing").lower() in verblist:
-            print("The verb is "+word+".")
-            verb = word
-            break
+    sentence = str(input("Say something: "))  # asks for input from server
+    print("Server: " + sentence)  # prints the sentence
+    sentence = sentence.removesuffix("?")  # removed questionmark at the end of the sentence
+    verb = verbIdentifier(sentence)  # calls method to identify the verb
 
+    connectionChecker()  # checks if clients are alive before sending message
 
-    if verb == "":
-        print("Warning: No verb recognized")
-        verb = "DefaultVerb"
+    for c in clients:  # sends the verb to all clients
+        c.send(verb.encode())
 
-
-    for c in clients:
-        if sentence != "Bananas are weird":
-            c.send(verb.encode())
-        else:
-            try:
-                c.send("ping".encode())
-            except:
-                print("A client has disconnected.")
-                # client is removed from the clients list
-                clients.remove(c)
-            else:
-                print("Sending: "+sentence)
-
-
-# thread which operates the inputHandler() method
 
 # loop that takes care of new connections
 def connectionListener():
+    # check if inputhandler is waiting before proceeding
     while True:
         clientSocket, addr = serverSocket.accept()  # accepts new connection
         print('Connected to: ', addr[0], ':', addr[1])
-        clients.append(clientSocket)  # adds client to the list "clients"
+        clients.append(clientSocket)  # adds client to the list of clients
 
-        # client gets two threads, one for sending and one for receiving messages to and from the client.
-        start_new_thread(threaded_client_listener, (clientSocket,))
-        start_new_thread(threaded_client_sender, (clientSocket, "Welcome to my chatroom"))
-        if (len(clients)) == 1:
-            sleep(6)  # waits for a short amount of time after first client is connected
-            start_new_thread(inputHandler, ())
+        # client gets two threads, one for sending and one for receiving messages
+        start_new_thread(threaded_client_listener, (clientSocket,))  # new thread listening for messages from client
+        start_new_thread(threaded_client_sender,
+                         (clientSocket, "Welcome to my chatroom"))  # new thread sending messages to client from server
+
+        if (len(clients)) == 1:  # if this was first client
+            sleep(1.5)  # waits for a short amount of time after first client is connected
+            start_new_thread(inputHandler, ())  # starts the thread hosting the function inputHandler()
+
 
 start_new_thread(connectionListener())
